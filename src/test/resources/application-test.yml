@@ -1,6 +1,6 @@
 spring:
   r2dbc:
-    url: r2dbc:h2:mem:///capacity;DB_CLOSE_DELAY=-1
+    url: r2dbc:h2:mem:///capacity;DB_CLOSE_DELAY=-1;CASE_INSENSITIVE_IDENTIFIERS=TRUE
     username: sa
     password: ""
   sql:

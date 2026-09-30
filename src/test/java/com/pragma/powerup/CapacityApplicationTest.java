@@ -2,6 +2,7 @@ package com.pragma.powerup;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.pragma.powerup.infrastructure.out.r2dbc.repository.ICapacityRepository;
+import com.pragma.powerup.infrastructure.out.r2dbc.entity.CapacityEntity;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -40,6 +41,9 @@ class CapacityApplicationTest {
     private static final AtomicInteger REMOTE_CALLS = new AtomicInteger();
     private static final AtomicReference<String> REMOTE_BODY = new AtomicReference<>();
     private static final AtomicReference<String> REMOTE_TOKEN = new AtomicReference<>();
+    private static final AtomicInteger LIST_CALLS = new AtomicInteger();
+    private static final AtomicReference<String> LIST_QUERY = new AtomicReference<>();
+    private static final AtomicReference<String> LIST_RESPONSE = new AtomicReference<>("[]");
     private static final HttpServer REMOTE = startServer();
     @Autowired private WebTestClient client;
     @Autowired private ICapacityRepository repository;
@@ -49,10 +53,19 @@ class CapacityApplicationTest {
         try {
             var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/api/v1/technologies/capacities", exchange -> {
-                REMOTE_CALLS.incrementAndGet();
-                REMOTE_BODY.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-                REMOTE_TOKEN.set(exchange.getRequestHeaders().getFirst("Authorization"));
-                exchange.sendResponseHeaders(REMOTE_STATUS.get(), -1);
+                if ("GET".equals(exchange.getRequestMethod())) {
+                    LIST_CALLS.incrementAndGet();
+                    LIST_QUERY.set(exchange.getRequestURI().getRawQuery());
+                    byte[] response = LIST_RESPONSE.get().getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(200, response.length);
+                    exchange.getResponseBody().write(response);
+                } else {
+                    REMOTE_CALLS.incrementAndGet();
+                    REMOTE_BODY.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                    REMOTE_TOKEN.set(exchange.getRequestHeaders().getFirst("Authorization"));
+                    exchange.sendResponseHeaders(REMOTE_STATUS.get(), -1);
+                }
                 exchange.close();
             });
             server.start();
@@ -74,6 +87,8 @@ class CapacityApplicationTest {
         StepVerifier.create(repository.deleteAll()).verifyComplete();
         REMOTE_STATUS.set(204);
         REMOTE_CALLS.set(0);
+        LIST_CALLS.set(0);
+        LIST_RESPONSE.set("[]");
     }
 
     @Test
@@ -116,6 +131,33 @@ class CapacityApplicationTest {
         client.get().uri("/swagger-ui.html").exchange().expectStatus().is3xxRedirection();
         client.get().uri("/v3/api-docs/swagger-config").exchange().expectStatus().isOk()
                 .expectBody().jsonPath("$.url").isEqualTo("/api/v1/openapi.yaml");
+    }
+
+    @Test
+    void listsOnePageAndLooksUpTechnologiesInOneBatch() {
+        var backend = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
+        var frontend = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();
+        assertThat(backend).isNotNull();
+        assertThat(frontend).isNotNull();
+        LIST_RESPONSE.set("[{\"capacityId\":" + backend.getId()
+                + ",\"technologies\":[{\"id\":7,\"name\":\"Java\"}]}]");
+
+        client.get().uri("/capacities?page=0&size=2&sortBy=name&direction=desc")
+                .headers(headers -> headers.setBearerAuth(token("ADMIN"))).exchange()
+                .expectStatus().isOk().expectBody()
+                .jsonPath("$.totalElements").isEqualTo(2)
+                .jsonPath("$.totalPages").isEqualTo(1)
+                .jsonPath("$.content[0].name").isEqualTo("Frontend")
+                .jsonPath("$.content[1].name").isEqualTo("Backend")
+                .jsonPath("$.content[1].technologies[0].id").isEqualTo(7)
+                .jsonPath("$.content[1].technologies[0].name").isEqualTo("Java");
+        assertThat(LIST_CALLS.get()).isEqualTo(1);
+        assertThat(LIST_QUERY.get()).contains("capacityIds");
+
+        client.get().uri("/capacities?size=0").headers(headers -> headers.setBearerAuth(token("ADMIN")))
+                .exchange().expectStatus().isBadRequest();
+        client.get().uri("/capacities").headers(headers -> headers.setBearerAuth(token("PERSON")))
+                .exchange().expectStatus().isForbidden();
     }
 
     private WebTestClient.ResponseSpec post(String token, List<Long> ids) {
