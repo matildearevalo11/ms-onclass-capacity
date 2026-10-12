@@ -17,6 +17,11 @@ public class CapacityQueryR2dbcAdapter implements ICapacityQueryPort {
     private final CapacityEntityMapper mapper;
 
     @Override
+    public Flux<Long> findExistingIds(List<Long> ids) {
+        return repository.findExistingIds(ids);
+    }
+
+    @Override
     public Mono<Long> count() {
         return repository.count();
     }

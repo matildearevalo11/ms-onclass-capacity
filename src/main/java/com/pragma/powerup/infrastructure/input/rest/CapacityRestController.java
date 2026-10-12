@@ -5,6 +5,9 @@ import com.pragma.powerup.application.dto.response.CapacityResponseDto;
 import com.pragma.powerup.application.handler.ICapacityHandler;
 import com.pragma.powerup.application.handler.ICapacityListHandler;
 import com.pragma.powerup.application.dto.request.CapacityPageRequestDto;
+import com.pragma.powerup.application.dto.request.CapacityIdsRequestDto;
+import java.util.List;
+import reactor.core.publisher.Flux;
 import com.pragma.powerup.application.dto.response.CapacityPageResponseDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -25,6 +28,11 @@ import reactor.core.publisher.Mono;
 public class CapacityRestController {
     private final ICapacityHandler handler;
     private final ICapacityListHandler listHandler;
+
+    @GetMapping(value = "/ids", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<Long> existingIds(@Valid @ModelAttribute CapacityIdsRequestDto request) {
+        return listHandler.existingIds(request.getIds());
+    }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<CapacityPageResponseDto> list(@Valid @ModelAttribute CapacityPageRequestDto request) {
