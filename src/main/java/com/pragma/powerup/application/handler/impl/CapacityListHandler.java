@@ -2,6 +2,8 @@ package com.pragma.powerup.application.handler.impl;
 
 import com.pragma.powerup.application.dto.request.CapacityPageRequestDto;
 import com.pragma.powerup.application.dto.response.CapacityPageResponseDto;
+import com.pragma.powerup.application.dto.response.CapacityDetailResponseDto;
+import com.pragma.powerup.application.dto.response.TechnologySummaryDto;
 import com.pragma.powerup.application.handler.ICapacityListHandler;
 import com.pragma.powerup.application.mapper.CapacityPageMapper;
 import com.pragma.powerup.domain.api.ICapacityListServicePort;
@@ -20,6 +22,17 @@ public class CapacityListHandler implements ICapacityListHandler {
     @Override
     public Flux<Long> existingIds(List<Long> ids) {
         return servicePort.existingIds(ids);
+    }
+
+    @Override
+    public Mono<List<CapacityDetailResponseDto>> detailsByIds(List<Long> ids) {
+        return servicePort.detailsByIds(ids)
+                .map(items -> items.stream()
+                        .map(item -> new CapacityDetailResponseDto(item.getId(), item.getName(),
+                                item.getTechnologies().stream()
+                                        .map(technology -> new TechnologySummaryDto(technology.getId(), technology.getName()))
+                                        .toList()))
+                        .toList());
     }
 
     @Override

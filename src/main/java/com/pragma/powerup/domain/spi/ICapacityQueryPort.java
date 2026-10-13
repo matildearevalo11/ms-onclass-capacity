@@ -10,4 +10,5 @@ public interface ICapacityQueryPort {
     Flux<Capacity> findByName(int page, int size, boolean descending);
     Flux<Capacity> findAll();
     Flux<Long> findExistingIds(List<Long> ids);
+    Flux<Capacity> findByIds(List<Long> ids);
 }

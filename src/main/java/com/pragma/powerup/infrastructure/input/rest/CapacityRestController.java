@@ -9,6 +9,7 @@ import com.pragma.powerup.application.dto.request.CapacityIdsRequestDto;
 import java.util.List;
 import reactor.core.publisher.Flux;
 import com.pragma.powerup.application.dto.response.CapacityPageResponseDto;
+import com.pragma.powerup.application.dto.response.CapacityDetailResponseDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
@@ -28,6 +29,11 @@ import reactor.core.publisher.Mono;
 public class CapacityRestController {
     private final ICapacityHandler handler;
     private final ICapacityListHandler listHandler;
+
+    @GetMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<List<CapacityDetailResponseDto>> detailsByIds(@Valid @ModelAttribute CapacityIdsRequestDto request) {
+        return listHandler.detailsByIds(request.getIds());
+    }
 
     @GetMapping(value = "/ids", produces = MediaType.APPLICATION_JSON_VALUE)
     public Flux<Long> existingIds(@Valid @ModelAttribute CapacityIdsRequestDto request) {

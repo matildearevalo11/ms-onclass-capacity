@@ -27,6 +27,18 @@ public class CapacityListUseCase implements ICapacityListServicePort {
     }
 
     @Override
+    public Mono<List<CapacityListItem>> detailsByIds(List<Long> ids) {
+        return capacityPort.findByIds(ids).collectList()
+                .flatMap(capacities -> technologyPort.findByCapacityIds(
+                                capacities.stream().map(Capacity::getId).toList())
+                        .map(technologies -> capacities.stream()
+                                .map(capacity -> new CapacityListItem(capacity.getId(), capacity.getName(),
+                                        capacity.getDescription(),
+                                        List.copyOf(technologies.getOrDefault(capacity.getId(), List.of()))))
+                                .toList()));
+    }
+
+    @Override
     public Mono<CapacityPage> list(CapacityPageQuery query) {
         return Mono.zip(capacityPort.count(), "name".equals(query.getSortBy())
                         ? capacityPort.findByName(query.getPage(), query.getSize(), query.isDescending()).collectList()
