@@ -3,13 +3,66 @@ openapi: 3.1.0
 info:
   title: On-Class Capacity API
   version: 1.0.0
-  description: Registro de capacidades.
+  description: Registro y consulta de capacidades.
 servers:
 - url: "/api/v1"
 security:
 - bearerAuth: []
 paths:
   "/capacities":
+    get:
+      operationId: listCapacities
+      summary: Listar capacidades
+      description: Lista capacidades con sus tecnologías. Requiere rol ADMIN.
+      parameters:
+      - name: page
+        in: query
+        description: Página desde cero.
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: size
+        in: query
+        description: Elementos por página.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+      - name: sortBy
+        in: query
+        description: Campo de orden.
+        schema:
+          type: string
+          enum: [name, technologyCount]
+          default: name
+      - name: direction
+        in: query
+        description: Dirección de orden.
+        schema:
+          type: string
+          enum: [asc, desc]
+          default: asc
+      responses:
+        '200':
+          description: Página de capacidades.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CapacityPage"
+        '400':
+          description: Parámetros inválidos.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Requiere rol ADMIN.
+        '503':
+          description: Servicio o base de datos no disponible.
     post:
       operationId: createCapacity
       summary: Registrar capacidad
@@ -71,6 +124,48 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    TechnologySummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    CapacityListItem:
+      type: object
+      required: [id, name, description, technologies]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        technologies:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TechnologySummary"
+    CapacityPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            "$ref": "#/components/schemas/CapacityListItem"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int64
     ErrorResponse:
       type: object
       required:
