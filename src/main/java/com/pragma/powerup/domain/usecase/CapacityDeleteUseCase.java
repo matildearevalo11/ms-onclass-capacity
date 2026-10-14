@@ -14,6 +14,6 @@ public class CapacityDeleteUseCase implements ICapacityDeleteServicePort {
 
     @Override
     public Mono<Void> deleteCapacities(List<Long> ids) {
-        return technologies.deleteForCapacities(ids).then(Mono.defer(() -> capacities.deleteByIds(ids)));
+        return capacities.deleteByIds(ids).then(Mono.defer(() -> technologies.deleteForCapacities(ids)));
     }
 }

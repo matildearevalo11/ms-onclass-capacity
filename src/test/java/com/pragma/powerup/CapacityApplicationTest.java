@@ -96,7 +96,7 @@ class CapacityApplicationTest {
     }
 
     @Test
-    void deletesCapacitiesAfterTechnologyCleanupAndKeepsThemOnFailure() {
+    void deletesCapacitiesAndRollsBackWhenTechnologyCleanupFails() {
         var first = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
         var second = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();
         assertThat(first).isNotNull();
