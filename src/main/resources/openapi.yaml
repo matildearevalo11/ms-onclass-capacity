@@ -81,6 +81,35 @@ paths:
         '403':
           description: Requiere rol ADMIN.
   "/capacities":
+    delete:
+      operationId: deleteCapacities
+      summary: Eliminar capacidades
+      description: Elimina las capacidades indicadas y solicita la limpieza de sus tecnologías. Requiere rol ADMIN.
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        description: IDs de capacidades separados por coma.
+        schema:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+        style: form
+        explode: false
+      responses:
+        '204':
+          description: Capacidades eliminadas.
+        '400':
+          description: Parámetros inválidos.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Requiere rol ADMIN.
+        '503':
+          description: Tecnología o base de datos no disponible.
     get:
       operationId: listCapacities
       summary: Listar capacidades

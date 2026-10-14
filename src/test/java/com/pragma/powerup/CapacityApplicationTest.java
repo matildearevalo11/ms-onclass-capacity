@@ -41,6 +41,7 @@ class CapacityApplicationTest {
     private static final AtomicInteger REMOTE_CALLS = new AtomicInteger();
     private static final AtomicReference<String> REMOTE_BODY = new AtomicReference<>();
     private static final AtomicReference<String> REMOTE_TOKEN = new AtomicReference<>();
+    private static final AtomicReference<String> DELETE_QUERY = new AtomicReference<>();
     private static final AtomicInteger LIST_CALLS = new AtomicInteger();
     private static final AtomicReference<String> LIST_QUERY = new AtomicReference<>();
     private static final AtomicReference<String> LIST_RESPONSE = new AtomicReference<>("[]");
@@ -62,6 +63,9 @@ class CapacityApplicationTest {
                     exchange.getResponseBody().write(response);
                 } else {
                     REMOTE_CALLS.incrementAndGet();
+                    if ("DELETE".equals(exchange.getRequestMethod())) {
+                        DELETE_QUERY.set(exchange.getRequestURI().getRawQuery());
+                    }
                     REMOTE_BODY.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                     REMOTE_TOKEN.set(exchange.getRequestHeaders().getFirst("Authorization"));
                     exchange.sendResponseHeaders(REMOTE_STATUS.get(), -1);
@@ -89,6 +93,28 @@ class CapacityApplicationTest {
         REMOTE_CALLS.set(0);
         LIST_CALLS.set(0);
         LIST_RESPONSE.set("[]");
+    }
+
+    @Test
+    void deletesCapacitiesAfterTechnologyCleanupAndKeepsThemOnFailure() {
+        var first = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
+        var second = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+        String uri = "/capacities?ids=" + first.getId() + "," + second.getId();
+        String adminToken = token("ADMIN");
+
+        REMOTE_STATUS.set(503);
+        client.delete().uri(uri).headers(headers -> headers.setBearerAuth(adminToken))
+                .exchange().expectStatus().isEqualTo(503);
+        StepVerifier.create(repository.count()).expectNext(2L).verifyComplete();
+
+        REMOTE_STATUS.set(204);
+        client.delete().uri(uri).headers(headers -> headers.setBearerAuth(adminToken))
+                .exchange().expectStatus().isNoContent();
+        StepVerifier.create(repository.count()).expectNext(0L).verifyComplete();
+        assertThat(DELETE_QUERY.get()).contains(String.valueOf(first.getId()), String.valueOf(second.getId()));
+        assertThat(REMOTE_TOKEN.get()).isEqualTo("Bearer " + adminToken);
     }
 
     @Test

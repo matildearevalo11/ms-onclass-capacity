@@ -4,6 +4,7 @@ import com.pragma.powerup.application.dto.request.CapacityRequestDto;
 import com.pragma.powerup.application.dto.response.CapacityResponseDto;
 import com.pragma.powerup.application.handler.ICapacityHandler;
 import com.pragma.powerup.application.handler.ICapacityListHandler;
+import com.pragma.powerup.application.handler.ICapacityDeleteHandler;
 import com.pragma.powerup.application.dto.request.CapacityPageRequestDto;
 import com.pragma.powerup.application.dto.request.CapacityIdsRequestDto;
 import java.util.List;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Flux;
 import com.pragma.powerup.application.dto.response.CapacityPageResponseDto;
 import com.pragma.powerup.application.dto.response.CapacityDetailResponseDto;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,13 @@ import reactor.core.publisher.Mono;
 public class CapacityRestController {
     private final ICapacityHandler handler;
     private final ICapacityListHandler listHandler;
+    private final ICapacityDeleteHandler deleteHandler;
+
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Mono<Void> deleteCapacities(@Valid @ModelAttribute CapacityIdsRequestDto request) {
+        return deleteHandler.deleteCapacities(request.getIds());
+    }
 
     @GetMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<List<CapacityDetailResponseDto>> detailsByIds(@Valid @ModelAttribute CapacityIdsRequestDto request) {

@@ -7,12 +7,18 @@ import com.pragma.powerup.infrastructure.out.r2dbc.repository.ICapacityRepositor
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class CapacityR2dbcAdapter implements ICapacityPersistencePort {
     private final ICapacityRepository repository;
     private final CapacityEntityMapper mapper;
+
+    @Override
+    public Mono<Void> deleteByIds(List<Long> ids) {
+        return repository.deleteAllById(ids);
+    }
 
     @Override
     public Mono<Capacity> save(Capacity capacity) {

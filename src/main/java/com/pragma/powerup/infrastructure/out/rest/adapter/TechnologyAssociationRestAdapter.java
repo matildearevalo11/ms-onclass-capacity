@@ -9,6 +9,8 @@ import com.pragma.powerup.domain.spi.ITechnologyAssociationPort;
 import com.pragma.powerup.infrastructure.out.rest.dto.TechnologyAssociationRequestDto;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -22,6 +24,22 @@ import reactor.core.publisher.Mono;
 public class TechnologyAssociationRestAdapter implements ITechnologyAssociationPort {
     private final WebClient client;
     private final Duration timeout;
+
+    @Override
+    public Mono<Void> deleteForCapacities(List<Long> capacityIds) {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(context -> (Jwt) context.getAuthentication().getPrincipal())
+                .switchIfEmpty(Mono.error(new ExternalServiceException(ExceptionMessages.AUTHENTICATION_REQUIRED.getMessage())))
+                .flatMap(jwt -> client.delete().uri(builder -> builder.path("/technologies/capacities")
+                                .queryParam("capacityIds", capacityIds.stream().map(String::valueOf)
+                                        .collect(Collectors.joining(","))).build())
+                        .headers(headers -> headers.setBearerAuth(jwt.getTokenValue()))
+                        .retrieve().toBodilessEntity())
+                .timeout(timeout)
+                .onErrorMap(error -> error instanceof WebClientException || error instanceof TimeoutException,
+                        error -> new ExternalServiceException(ExceptionMessages.TECHNOLOGY_SERVICE_UNAVAILABLE.getMessage()))
+                .then();
+    }
 
     public TechnologyAssociationRestAdapter(WebClient.Builder builder,
             @Value("${services.technology.url}") String url,
