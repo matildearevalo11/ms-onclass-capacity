@@ -29,6 +29,7 @@ public class SecurityConfiguration {
                         .pathMatchers("/openapi.yaml", "/v3/api-docs/swagger-config", "/webjars/swagger-ui/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .pathMatchers("/capacities").hasRole("ADMIN")
                         .pathMatchers("/capacities/ids").hasRole("ADMIN")
+                        .pathMatchers("/capacities/details").hasRole("ADMIN")
                         .anyExchange().denyAll())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .oauth2ResourceServer(resource -> resource

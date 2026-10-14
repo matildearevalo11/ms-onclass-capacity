@@ -22,6 +22,11 @@ public class CapacityQueryR2dbcAdapter implements ICapacityQueryPort {
     }
 
     @Override
+    public Flux<Capacity> findByIds(List<Long> ids) {
+        return repository.findByIds(ids).map(entity -> mapper.toModel(entity, List.of()));
+    }
+
+    @Override
     public Mono<Long> count() {
         return repository.count();
     }

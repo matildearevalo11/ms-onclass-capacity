@@ -134,6 +134,25 @@ class CapacityApplicationTest {
     }
 
     @Test
+    void returnsRequestedCapacityDetailsWithTechnologySummaries() {
+        var backend = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
+        assertThat(backend).isNotNull();
+        LIST_RESPONSE.set("[{\"capacityId\":" + backend.getId()
+                + ",\"technologies\":[{\"id\":7,\"name\":\"Java\"}]}]");
+
+        client.get().uri("/capacities/details?ids=" + backend.getId() + ",999999")
+                .headers(headers -> headers.setBearerAuth(token("ADMIN"))).exchange()
+                .expectStatus().isOk().expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].id").isEqualTo(backend.getId().intValue())
+                .jsonPath("$[0].name").isEqualTo("Backend")
+                .jsonPath("$[0].technologies[0].id").isEqualTo(7)
+                .jsonPath("$[0].technologies[0].name").isEqualTo("Java")
+                .jsonPath("$[0].description").doesNotExist();
+        assertThat(LIST_CALLS.get()).isEqualTo(1);
+    }
+
+    @Test
     void returnsOnlyExistingCapacityIdsForBootcampRegistration() {
         var first = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
         var second = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();
