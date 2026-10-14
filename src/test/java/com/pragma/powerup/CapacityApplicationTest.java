@@ -134,6 +134,23 @@ class CapacityApplicationTest {
     }
 
     @Test
+    void returnsOnlyExistingCapacityIdsForBootcampRegistration() {
+        var first = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
+        var second = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+
+        client.get().uri("/capacities/ids?ids=" + first.getId() + ",999999," + second.getId())
+                .headers(headers -> headers.setBearerAuth(token("ADMIN"))).exchange()
+                .expectStatus().isOk().expectBody()
+                .jsonPath("$[0]").isNumber().jsonPath("$[1]").isNumber()
+                .jsonPath("$.length()").isEqualTo(2);
+        client.get().uri("/capacities/ids?ids=" + first.getId())
+                .headers(headers -> headers.setBearerAuth(token("PERSON"))).exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
     void listsOnePageAndLooksUpTechnologiesInOneBatch() {
         var backend = repository.save(new CapacityEntity(null, "Backend", "Services")).block();
         var frontend = repository.save(new CapacityEntity(null, "Frontend", "Interfaces")).block();

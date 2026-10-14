@@ -9,6 +9,41 @@ servers:
 security:
 - bearerAuth: []
 paths:
+  "/capacities/ids":
+    get:
+      operationId: existingCapacityIds
+      summary: Consultar IDs de capacidades existentes
+      description: Devuelve los IDs existentes entre los solicitados. Requiere rol ADMIN.
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        description: IDs de capacidades por comprobar.
+        schema:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+        style: form
+        explode: false
+      responses:
+        '200':
+          description: IDs existentes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int64
+        '400':
+          description: Parámetros inválidos.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Requiere rol ADMIN.
   "/capacities":
     get:
       operationId: listCapacities

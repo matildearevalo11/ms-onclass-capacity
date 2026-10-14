@@ -8,12 +8,19 @@ import com.pragma.powerup.domain.api.ICapacityListServicePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CapacityListHandler implements ICapacityListHandler {
     private final ICapacityListServicePort servicePort;
     private final CapacityPageMapper mapper;
+
+    @Override
+    public Flux<Long> existingIds(List<Long> ids) {
+        return servicePort.existingIds(ids);
+    }
 
     @Override
     public Mono<CapacityPageResponseDto> list(CapacityPageRequestDto request) {

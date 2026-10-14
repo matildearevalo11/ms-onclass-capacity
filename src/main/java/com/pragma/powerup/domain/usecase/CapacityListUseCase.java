@@ -14,11 +14,17 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 public class CapacityListUseCase implements ICapacityListServicePort {
     private final ICapacityQueryPort capacityPort;
     private final ITechnologyQueryPort technologyPort;
+
+    @Override
+    public Flux<Long> existingIds(List<Long> ids) {
+        return capacityPort.findExistingIds(ids);
+    }
 
     @Override
     public Mono<CapacityPage> list(CapacityPageQuery query) {
