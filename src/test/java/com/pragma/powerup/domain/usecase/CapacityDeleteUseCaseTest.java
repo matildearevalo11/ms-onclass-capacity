@@ -10,7 +10,7 @@ import static org.mockito.Mockito.*;
 
 class CapacityDeleteUseCaseTest {
     @Test
-    void deletesCapacitiesOnlyAfterTechnologyCleanupSucceeds() {
+    void deletesCapacitiesBeforeCleaningUpTheirTechnologies() {
         var capacities = mock(ICapacityPersistencePort.class);
         var technologies = mock(ITechnologyAssociationPort.class);
         var ids = List.of(1L, 2L);
@@ -19,21 +19,33 @@ class CapacityDeleteUseCaseTest {
 
         StepVerifier.create(new CapacityDeleteUseCase(capacities, technologies).deleteCapacities(ids))
                 .verifyComplete();
-        var order = inOrder(technologies, capacities);
-        order.verify(technologies).deleteForCapacities(ids);
+        var order = inOrder(capacities, technologies);
         order.verify(capacities).deleteByIds(ids);
+        order.verify(technologies).deleteForCapacities(ids);
     }
 
     @Test
-    void keepsCapacitiesWhenTechnologyCleanupFails() {
+    void propagatesTechnologyCleanupFailureSoTheLocalDeletionIsRolledBack() {
         var capacities = mock(ICapacityPersistencePort.class);
         var technologies = mock(ITechnologyAssociationPort.class);
         var ids = List.of(1L);
-        when(technologies.deleteForCapacities(ids)).thenReturn(Mono.error(new IllegalStateException("Unavailable")));
         when(capacities.deleteByIds(ids)).thenReturn(Mono.empty());
+        when(technologies.deleteForCapacities(ids)).thenReturn(Mono.error(new IllegalStateException("Unavailable")));
 
         StepVerifier.create(new CapacityDeleteUseCase(capacities, technologies).deleteCapacities(ids))
                 .expectError(IllegalStateException.class).verify();
-        verify(capacities, never()).deleteByIds(ids);
+        verify(capacities).deleteByIds(ids);
+    }
+
+    @Test
+    void doesNotCallTechnologyServiceWhenLocalDeletionFails() {
+        var capacities = mock(ICapacityPersistencePort.class);
+        var technologies = mock(ITechnologyAssociationPort.class);
+        var ids = List.of(1L);
+        when(capacities.deleteByIds(ids)).thenReturn(Mono.error(new IllegalStateException("Database down")));
+
+        StepVerifier.create(new CapacityDeleteUseCase(capacities, technologies).deleteCapacities(ids))
+                .expectError(IllegalStateException.class).verify();
+        verifyNoInteractions(technologies);
     }
 }
