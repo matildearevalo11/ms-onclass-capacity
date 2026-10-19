@@ -1,5 +1,7 @@
 package com.pragma.powerup.infrastructure.configuration;
 
+import com.pragma.powerup.infrastructure.constants.ApiPaths;
+import com.pragma.powerup.infrastructure.constants.SecurityConstants;
 import com.pragma.powerup.infrastructure.security.SecurityErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,14 +14,12 @@ import org.springframework.security.web.server.context.NoOpServerSecurityContext
 
 @Configuration
 public class SecurityConfiguration {
-    private static final String ADMIN = "ADMIN";
-
 
     @Bean
     SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, SecurityErrorHandler errors) {
         JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
-        roles.setAuthoritiesClaimName("role");
-        roles.setAuthorityPrefix("ROLE_");
+        roles.setAuthoritiesClaimName(SecurityConstants.ROLE_CLAIM);
+        roles.setAuthorityPrefix(SecurityConstants.ROLE_PREFIX);
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(roles);
         return http
@@ -28,10 +28,9 @@ public class SecurityConfiguration {
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/openapi.yaml", "/v3/api-docs/swagger-config", "/webjars/swagger-ui/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .pathMatchers("/capacities").hasRole(ADMIN)
-                        .pathMatchers("/capacities/ids").hasRole(ADMIN)
-                        .pathMatchers("/capacities/details").hasRole(ADMIN)
+                        .pathMatchers(ApiPaths.documentation()).permitAll()
+                        .pathMatchers(ApiPaths.CAPACITIES, ApiPaths.CAPACITY_IDS, ApiPaths.CAPACITY_DETAILS)
+                        .hasRole(SecurityConstants.ADMIN)
                         .anyExchange().denyAll())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .oauth2ResourceServer(resource -> resource

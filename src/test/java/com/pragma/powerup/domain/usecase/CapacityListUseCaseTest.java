@@ -1,5 +1,7 @@
 package com.pragma.powerup.domain.usecase;
 
+import com.pragma.powerup.domain.enums.CapacitySortField;
+import com.pragma.powerup.domain.enums.SortDirection;
 import com.pragma.powerup.domain.model.Capacity;
 import com.pragma.powerup.domain.model.CapacityPageQuery;
 import com.pragma.powerup.domain.model.TechnologySummary;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class CapacityListUseCaseTest {
@@ -30,7 +33,7 @@ class CapacityListUseCaseTest {
                         new TechnologySummary(6L, "Linux")))));
 
         StepVerifier.create(new CapacityListUseCase(capacities, technologies)
-                        .list(new CapacityPageQuery(1, 1, "technologyCount", true)))
+                        .list(new CapacityPageQuery(1, 1, CapacitySortField.TECHNOLOGY_COUNT, SortDirection.DESC)))
                 .assertNext(page -> {
                     org.assertj.core.api.Assertions.assertThat(page.getTotalElements()).isEqualTo(3);
                     org.assertj.core.api.Assertions.assertThat(page.getTotalPages()).isEqualTo(3);
@@ -39,5 +42,58 @@ class CapacityListUseCaseTest {
                     org.assertj.core.api.Assertions.assertThat(page.getContent().getFirst().getTechnologies()).hasSize(2);
                 }).verifyComplete();
         verify(capacities, never()).findByName(anyInt(), anyInt(), anyBoolean());
+    }
+
+    @Test
+    void sortsByNameInTheDatabaseAndAttachesTechnologies() {
+        var capacities = mock(ICapacityQueryPort.class);
+        var technologies = mock(ITechnologyQueryPort.class);
+        var backend = new Capacity(1L, "Backend", "Services", List.of());
+        when(capacities.count()).thenReturn(Mono.just(1L));
+        when(capacities.findByName(0, 10, false)).thenReturn(Flux.just(backend));
+        when(technologies.findByCapacityIds(List.of(1L))).thenReturn(Mono.just(Map.of(
+                1L, List.of(new TechnologySummary(1L, "Java")))));
+
+        StepVerifier.create(new CapacityListUseCase(capacities, technologies)
+                        .list(new CapacityPageQuery(0, 10, CapacitySortField.NAME, SortDirection.ASC)))
+                .assertNext(page -> {
+                    assertThat(page.getTotalPages()).isEqualTo(1);
+                    assertThat(page.getContent().getFirst().getTechnologies()).extracting(TechnologySummary::getName)
+                            .containsExactly("Java");
+                }).verifyComplete();
+        verify(capacities, never()).findAll();
+    }
+
+    @Test
+    void returnsEmptyContentWhenPageIsBeyondTheLastOne() {
+        var capacities = mock(ICapacityQueryPort.class);
+        var technologies = mock(ITechnologyQueryPort.class);
+        when(capacities.count()).thenReturn(Mono.just(1L));
+        when(capacities.findAll()).thenReturn(Flux.just(new Capacity(1L, "Backend", "Services", List.of())));
+        when(technologies.findByCapacityIds(List.of(1L))).thenReturn(Mono.just(Map.of()));
+
+        StepVerifier.create(new CapacityListUseCase(capacities, technologies)
+                        .list(new CapacityPageQuery(5, 10, CapacitySortField.TECHNOLOGY_COUNT, SortDirection.ASC)))
+                .assertNext(page -> {
+                    assertThat(page.getContent()).isEmpty();
+                    assertThat(page.getTotalElements()).isEqualTo(1);
+                }).verifyComplete();
+    }
+
+    @Test
+    void returnsDetailsWithTechnologiesForRequestedIds() {
+        var capacities = mock(ICapacityQueryPort.class);
+        var technologies = mock(ITechnologyQueryPort.class);
+        when(capacities.findByIds(List.of(1L, 2L))).thenReturn(Flux.just(
+                new Capacity(1L, "Backend", "Services", List.of()), new Capacity(2L, "Frontend", "UI", List.of())));
+        when(technologies.findByCapacityIds(List.of(1L, 2L))).thenReturn(Mono.just(Map.of(
+                1L, List.of(new TechnologySummary(1L, "Java")))));
+
+        StepVerifier.create(new CapacityListUseCase(capacities, technologies).detailsByIds(List.of(1L, 2L)))
+                .assertNext(items -> {
+                    assertThat(items).hasSize(2);
+                    assertThat(items.get(0).getTechnologies()).hasSize(1);
+                    assertThat(items.get(1).getTechnologies()).isEmpty();
+                }).verifyComplete();
     }
 }

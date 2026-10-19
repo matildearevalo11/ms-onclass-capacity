@@ -10,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CapacityIdsRequestDto {
-    @NotEmpty(message = "Capacity IDs are required.")
-    private List<@NotNull @Positive Long> ids;
+    @NotEmpty(message = ValidationMessages.CAPACITY_IDS_REQUIRED)
+    private List<@NotNull(message = ValidationMessages.CAPACITY_ID_REQUIRED)
+            @Positive(message = ValidationMessages.CAPACITY_ID_POSITIVE) Long> ids;
 }
