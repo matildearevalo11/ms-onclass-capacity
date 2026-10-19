@@ -1,5 +1,7 @@
 package com.pragma.powerup.infrastructure.out.rest.adapter;
 
+import com.pragma.powerup.infrastructure.constants.ApiParameters;
+import com.pragma.powerup.infrastructure.constants.ApiPaths;
 import com.pragma.powerup.domain.exception.ExceptionMessages;
 import com.pragma.powerup.domain.exception.ExternalServiceException;
 import com.pragma.powerup.domain.model.TechnologySummary;
@@ -40,8 +42,8 @@ public class TechnologyQueryRestAdapter implements ITechnologyQueryPort {
         return ReactiveSecurityContextHolder.getContext()
                 .map(context -> (Jwt) context.getAuthentication().getPrincipal())
                 .flatMap(jwt -> Flux.fromIterable(capacityIds).buffer(IDS_PER_REQUEST)
-                        .concatMap(ids -> client.get().uri(builder -> builder.path("/technologies/capacities")
-                                        .queryParam("capacityIds", ids.stream().map(String::valueOf)
+                        .concatMap(ids -> client.get().uri(builder -> builder.path(ApiPaths.TECHNOLOGY_CAPACITIES)
+                                        .queryParam(ApiParameters.CAPACITY_IDS, ids.stream().map(String::valueOf)
                                                 .collect(Collectors.joining(","))).build())
                                 .headers(headers -> headers.setBearerAuth(jwt.getTokenValue()))
                                 .retrieve().bodyToFlux(CapacityTechnologyListResponseDto.class)

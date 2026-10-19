@@ -4,6 +4,8 @@ import com.pragma.powerup.application.dto.request.CapacityPageRequestDto;
 import com.pragma.powerup.application.dto.response.CapacityListItemDto;
 import com.pragma.powerup.application.dto.response.CapacityPageResponseDto;
 import com.pragma.powerup.application.dto.response.TechnologySummaryDto;
+import com.pragma.powerup.domain.enums.CapacitySortField;
+import com.pragma.powerup.domain.enums.SortDirection;
 import com.pragma.powerup.domain.model.CapacityPage;
 import com.pragma.powerup.domain.model.CapacityPageQuery;
 import org.springframework.stereotype.Component;
@@ -11,8 +13,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CapacityPageMapper {
     public CapacityPageQuery toQuery(CapacityPageRequestDto request) {
-        return new CapacityPageQuery(request.getPage(), request.getSize(), request.getSortBy(),
-                "desc".equals(request.getDirection()));
+        return new CapacityPageQuery(request.getPage(), request.getSize(),
+                CapacitySortField.fromValue(request.getSortBy()), SortDirection.fromValue(request.getDirection()));
     }
 
     public CapacityPageResponseDto toResponse(CapacityPage page) {

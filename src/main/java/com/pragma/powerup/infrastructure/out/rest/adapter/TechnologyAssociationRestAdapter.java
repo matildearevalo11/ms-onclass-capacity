@@ -1,5 +1,7 @@
 package com.pragma.powerup.infrastructure.out.rest.adapter;
 
+import com.pragma.powerup.infrastructure.constants.ApiParameters;
+import com.pragma.powerup.infrastructure.constants.ApiPaths;
 import com.pragma.powerup.domain.exception.ConflictException;
 import com.pragma.powerup.domain.exception.ExceptionMessages;
 import com.pragma.powerup.domain.exception.ExternalServiceException;
@@ -30,8 +32,8 @@ public class TechnologyAssociationRestAdapter implements ITechnologyAssociationP
         return ReactiveSecurityContextHolder.getContext()
                 .map(context -> (Jwt) context.getAuthentication().getPrincipal())
                 .switchIfEmpty(Mono.error(new ExternalServiceException(ExceptionMessages.AUTHENTICATION_REQUIRED.getMessage())))
-                .flatMap(jwt -> client.delete().uri(builder -> builder.path("/technologies/capacities")
-                                .queryParam("capacityIds", capacityIds.stream().map(String::valueOf)
+                .flatMap(jwt -> client.delete().uri(builder -> builder.path(ApiPaths.TECHNOLOGY_CAPACITIES)
+                                .queryParam(ApiParameters.CAPACITY_IDS, capacityIds.stream().map(String::valueOf)
                                         .collect(Collectors.joining(","))).build())
                         .headers(headers -> headers.setBearerAuth(jwt.getTokenValue()))
                         .retrieve().toBodilessEntity())
@@ -53,7 +55,7 @@ public class TechnologyAssociationRestAdapter implements ITechnologyAssociationP
         return ReactiveSecurityContextHolder.getContext()
                 .map(context -> (Jwt) context.getAuthentication().getPrincipal())
                 .switchIfEmpty(Mono.error(new ExternalServiceException(ExceptionMessages.AUTHENTICATION_REQUIRED.getMessage())))
-                .flatMap(jwt -> client.post().uri("/technologies/capacities")
+                .flatMap(jwt -> client.post().uri(ApiPaths.TECHNOLOGY_CAPACITIES)
                         .headers(headers -> headers.setBearerAuth(jwt.getTokenValue()))
                         .bodyValue(new TechnologyAssociationRequestDto(capacity.getId(), capacity.getTechnologyIds()))
                         .retrieve()
